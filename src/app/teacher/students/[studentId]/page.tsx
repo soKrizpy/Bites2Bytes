@@ -1,5 +1,4 @@
 import { createClient } from '@/utils/supabase/server'
-import { createAdminClient } from '@/utils/supabase/admin'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import ProgressControl from './ProgressControl'
@@ -21,13 +20,10 @@ export default async function TeacherStudentDetailPage({ params, searchParams }:
   // 1. Ambil data guru (untuk Navbar)
   const { data: teacherProfile } = await supabase.from('profiles').select('username, photo_url').eq('id', user.id).single()
 
-  // 2. Ambil data siswa (auth)
-  const adminClient = createAdminClient()
-  const { data: userData } = await adminClient.auth.admin.getUserById(studentId)
-  const student = userData?.user
-
-  // 3. Ambil data profil siswa (DB)
+  // 2. Ambil data profil siswa (DB)
   const { data: studentProfile } = await supabase.from('profiles').select('*').eq('id', studentId).single()
+  const studentName = studentProfile?.full_name || studentProfile?.username || `Siswa ${studentId.slice(0, 8)}`
+  const student = { user_metadata: { username: studentName } }
 
   // 4. Ambil Modul
   if (!moduleId) return <div className="page-wrapper">Module ID is required.</div>
@@ -92,7 +88,7 @@ export default async function TeacherStudentDetailPage({ params, searchParams }:
         {/* Info Siswa */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
           <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-success), var(--color-primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '1.5rem' }}>
-            {student?.user_metadata?.username?.[0]?.toUpperCase() || '?'}
+            {studentName[0]?.toUpperCase() || '?'}
           </div>
           <div>
             <h1 className="header" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>

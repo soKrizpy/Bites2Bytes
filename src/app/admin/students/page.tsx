@@ -1,27 +1,17 @@
-import { createAdminClient } from '@/utils/supabase/admin'
+import { syncProfilesFromAuthUsers } from '@/utils/supabase/admin'
+import { createClient } from '@/utils/supabase/server'
 import LogoutButton from '@/components/LogoutButton'
+import MpinVisibilityCell from '@/components/MpinVisibilityCell'
 
 export default async function AdminStudentsPage() {
-  const adminClient = createAdminClient()
-  
-  // Note: For a very large userbase, listUsers pagination is required.
-  // For standard usage, listUsers fetches up to 50 users by default, we can set it up to 1000.
-  const { data, error } = await adminClient.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000
-  })
+  const supabase = await createClient()
+  await syncProfilesFromAuthUsers()
 
-  // Get Profiles to attach plain_mpin
-  const { data: profiles } = await adminClient.from('profiles').select('id, plain_mpin')
-
-  let students: any[] = []
-  if (data && data.users) {
-    students = data.users.filter((u: any) => u.user_metadata?.role === 'student' || u.user_metadata?.role === 'Student')
-      .map(u => {
-        const prof = profiles?.find(p => p.id === u.id)
-        return { ...u, plain_mpin: prof?.plain_mpin || 'Hidden' }
-      })
-  }
+  const { data: students, error } = await supabase
+    .from('profiles')
+    .select('id, username, plain_mpin, created_at')
+    .eq('role', 'student')
+    .order('created_at', { ascending: false })
 
   return (
     <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem', maxWidth: '800px', margin: '0 auto' }}>
@@ -37,7 +27,7 @@ export default async function AdminStudentsPage() {
       <div className="card">
         {error ? (
           <p style={{ color: 'red' }}>Error loading students: {error.message}</p>
-        ) : students.length === 0 ? (
+        ) : !students || students.length === 0 ? (
           <p style={{ color: 'var(--color-text-muted)' }}>No students registered yet.</p>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -52,8 +42,10 @@ export default async function AdminStudentsPage() {
             <tbody>
               {students.map((st) => (
                 <tr key={st.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{st.user_metadata?.username}</td>
-                  <td style={{ padding: '0.75rem', fontFamily: 'monospace', color: 'var(--color-danger)', fontWeight: 'bold' }}>{st.plain_mpin}</td>
+                  <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{st.username}</td>
+                  <td style={{ padding: '0.75rem' }}>
+                    <MpinVisibilityCell value={st.plain_mpin} />
+                  </td>
                   <td style={{ padding: '0.75rem', color: 'var(--color-text-muted)' }}>{new Date(st.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '0.75rem', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{st.id.substring(0, 8)}...</td>
                 </tr>

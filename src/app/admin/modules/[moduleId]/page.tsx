@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import Navbar from '@/components/Navbar'
-import TopicSection from './TopicSection'
-import ExamManagement from './ExamManagement'
+import TopicSection from '../module-detail/TopicSection'
+import ExamManagement from '../module-detail/ExamManagement'
 
 interface PageProps {
     params: Promise<{ moduleId: string }>

@@ -1,23 +1,25 @@
-import { createAdminClient } from '@/utils/supabase/admin'
 import { createClient } from '@/utils/supabase/server'
+import { syncProfilesFromAuthUsers } from '@/utils/supabase/admin'
 import EnrollmentForm from './EnrollmentForm'
 import Navbar from '@/components/Navbar'
 
 export default async function AdminEnrollmentsPage() {
-  const adminClient = createAdminClient()
   const supabase = await createClient()
+  await syncProfilesFromAuthUsers()
 
   // 1. Ambil data guru & siswa
-  const { data: usersData } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 })
-  const allUsers = usersData?.users || []
-  
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, username, role')
+
+  const allUsers = profiles || []
   const teachers = allUsers
-    .filter(u => u.user_metadata?.role === 'teacher' || u.user_metadata?.role === 'Teacher')
-    .map(t => ({ id: t.id, username: t.user_metadata?.username }))
+    .filter((user) => user.role === 'teacher')
+    .map((teacher) => ({ id: teacher.id, username: teacher.username }))
   
   const students = allUsers
-    .filter(u => u.user_metadata?.role === 'student' || u.user_metadata?.role === 'Student')
-    .map(s => ({ id: s.id, username: s.user_metadata?.username }))
+    .filter((user) => user.role === 'student')
+    .map((student) => ({ id: student.id, username: student.username }))
 
   // 2. Ambil data modul
   const { data: modules } = await supabase.from('modules').select('id, title').order('created_at', { ascending: false })
@@ -32,7 +34,7 @@ export default async function AdminEnrollmentsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const adminName = user?.user_metadata?.username || 'Admin'
 
-  const getUsername = (id: string) => allUsers.find(u => u.id === id)?.user_metadata?.username || 'Unknown'
+  const getUsername = (id: string) => allUsers.find((user) => user.id === id)?.username || 'Unknown'
 
   return (
     <>

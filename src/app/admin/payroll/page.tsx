@@ -1,20 +1,22 @@
-import { createAdminClient } from '@/utils/supabase/admin'
 import { createClient } from '@/utils/supabase/server'
+import { syncProfilesFromAuthUsers } from '@/utils/supabase/admin'
 import Navbar from '@/components/Navbar'
 import PayrollControl from './PayrollControl'
 
 export default async function AdminPayrollPage() {
-  const adminClient = createAdminClient()
   const supabase = await createClient()
+  await syncProfilesFromAuthUsers()
 
   // Ambil Admin User
   const { data: { user } } = await supabase.auth.getUser()
   const adminName = user?.user_metadata?.username || 'Admin'
 
-  // Ambil Users
-  const { data: usersData } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 })
-  const allUsers = usersData?.users || []
-  const teachers = allUsers.filter(u => u.user_metadata?.role === 'teacher' || u.user_metadata?.role === 'Teacher')
+  // Ambil daftar guru
+  const { data: teachers } = await supabase
+    .from('profiles')
+    .select('id, username')
+    .eq('role', 'teacher')
+    .order('username')
 
   // Ambil semua session untuk menghitung Unpaid (is_paid = false && report_submitted = true)
   const { data: sessions } = await supabase
@@ -29,12 +31,15 @@ export default async function AdminPayrollPage() {
   const RATE_PER_SESSION = 60000
 
   // Proses Data Guru
-  const payrollData = teachers.map(teacher => {
-    const teacherSessions = (sessions || []).filter(s => (s.enrollments as any)?.teacher_id === teacher.id)
+  const payrollData = (teachers || []).map((teacher) => {
+    const teacherSessions = (sessions || []).filter((session) => {
+      const enrollment = session.enrollments as { teacher_id?: string } | null
+      return enrollment?.teacher_id === teacher.id
+    })
     const pendingAmount = teacherSessions.length * RATE_PER_SESSION
     return {
       teacherId: teacher.id,
-      teacherName: teacher.user_metadata?.username || 'Unknown',
+      teacherName: teacher.username || 'Unknown',
       pendingSessionsCount: teacherSessions.length,
       pendingAmount
     }

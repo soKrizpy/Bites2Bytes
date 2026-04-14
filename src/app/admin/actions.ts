@@ -1,9 +1,38 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createAdminClient } from '@/utils/supabase/admin'
+import {
+  createAdminClient,
+  ensureStorageBucket,
+  hasAdminCredentials,
+  syncProfilesFromAuthUsers,
+} from '@/utils/supabase/admin'
+import { getDeploymentAuditReport } from '@/utils/deploymentAudit'
 
-export async function createUserAction(prevState: any, formData: FormData) {
+interface ActionState {
+  success: boolean
+  error?: string
+  message?: string
+}
+
+export interface RepairActionResult {
+  success: boolean
+  error?: string
+  message?: string
+  syncedCount?: number
+  buckets?: string[]
+}
+
+export async function createUserAction(prevState: ActionState | null, formData: FormData) {
+  void prevState
+
+  if (!hasAdminCredentials()) {
+    return {
+      success: false,
+      error: 'SUPABASE_SERVICE_ROLE_KEY belum diset di environment, jadi akun baru belum bisa dibuat dari panel admin.',
+    }
+  }
+
   const adminClient = createAdminClient()
   
   const rawUsername = formData.get('username') as string
@@ -54,4 +83,57 @@ export async function createUserAction(prevState: any, formData: FormData) {
 
   revalidatePath('/admin')
   return { success: true, message: `Successfully created user ${username}!` }
+}
+
+export async function repairSupabaseAction(): Promise<RepairActionResult> {
+  if (!hasAdminCredentials()) {
+    return {
+      success: false,
+      error: 'SUPABASE_SERVICE_ROLE_KEY belum diset, jadi repair otomatis belum bisa dijalankan.',
+    }
+  }
+
+  const [profileSync, profilePicturesBucket, badgesBucket] = await Promise.all([
+    syncProfilesFromAuthUsers(),
+    ensureStorageBucket('profile-pictures'),
+    ensureStorageBucket('badges'),
+  ])
+
+  if (!profileSync.success) {
+    return {
+      success: false,
+      error: profileSync.error || 'Sinkronisasi profiles gagal.',
+      syncedCount: profileSync.syncedCount,
+    }
+  }
+
+  const bucketErrors = [profilePicturesBucket.error, badgesBucket.error].filter(Boolean)
+  if (bucketErrors.length > 0) {
+    return {
+      success: false,
+      error: bucketErrors.join(' | '),
+      syncedCount: profileSync.syncedCount,
+    }
+  }
+
+  const adminClient = createAdminClient()
+  const { data: buckets } = await adminClient.storage.listBuckets()
+  const report = await getDeploymentAuditReport()
+  const remainingWarnings = report.supabaseItems.filter((item) => item.level !== 'ok')
+
+  revalidatePath('/admin')
+  revalidatePath('/admin/students')
+  revalidatePath('/admin/teachers')
+  revalidatePath('/teacher')
+  revalidatePath('/student')
+
+  return {
+    success: true,
+    syncedCount: profileSync.syncedCount,
+    buckets: (buckets || []).map((bucket) => bucket.id),
+    message:
+      remainingWarnings.length === 0
+        ? `Repair selesai. ${profileSync.syncedCount || 0} profile berhasil disinkronkan dan bucket storage siap.`
+        : `Repair selesai, tetapi masih ada ${remainingWarnings.length} item yang perlu dicek di panel Audit Deployment.`,
+  }
 }

@@ -1,5 +1,4 @@
 import { createClient } from '@/utils/supabase/server'
-import { createAdminClient } from '@/utils/supabase/admin'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
 import ZoomLinkForm from './ZoomLinkForm'
@@ -41,18 +40,19 @@ export default async function TeacherDashboard() {
     .eq('teacher_id', user.id)
     .order('enrolled_at', { ascending: false })
 
-  // Ambil data siswa dari auth (butuh admin client untuk listUsers)
-  const adminClient = createAdminClient()
-  const { data: usersData } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 })
-  const allUsers = usersData?.users || []
-  const getStudent = (id: string) => allUsers.find(u => u.id === id)
-
   // Hitung statistik
   const uniqueStudents = new Set(enrollments?.map(e => e.student_id) || [])
   const uniqueModules = new Set(enrollments?.map(e => e.module_id) || [])
+  const studentIds = Array.from(uniqueStudents)
+
+  const { data: studentProfiles } = await supabase
+    .from('profiles')
+    .select('id, username, full_name')
+    .in('id', studentIds.length > 0 ? studentIds : [''])
+
+  const studentMap = new Map((studentProfiles || []).map((student) => [student.id, student]))
 
   // Ambil progress siswa untuk semua enrollment ini
-  const studentIds = Array.from(uniqueStudents)
   const { data: progressData } = await supabase
     .from('student_progress')
     .select('student_id, completed')
@@ -115,17 +115,17 @@ export default async function TeacherDashboard() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {enrollments.map((e) => {
-              const student = getStudent(e.student_id)
+              const student = studentMap.get(e.student_id)
               const mod = e.modules as any
               return (
                 <div key={e.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
                   {/* Avatar siswa */}
                   <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--color-success), var(--color-primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: '1.2rem', flexShrink: 0 }}>
-                    {student?.user_metadata?.username?.[0]?.toUpperCase() || '?'}
+                    {student?.username?.[0]?.toUpperCase() || '?'}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 700, fontSize: '1rem' }}>@{student?.user_metadata?.username || 'Unknown'}</p>
+                    <p style={{ fontWeight: 700, fontSize: '1rem' }}>@{student?.username || 'Unknown'}</p>
                     <span className="chip chip-info" style={{ marginTop: '0.3rem' }}>📚 {mod?.title || 'Modul'}</span>
                   </div>
 

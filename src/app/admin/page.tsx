@@ -1,16 +1,18 @@
-import { createAdminClient } from '@/utils/supabase/admin'
 import { createClient } from '@/utils/supabase/server'
+import { syncProfilesFromAuthUsers } from '@/utils/supabase/admin'
+import { getDeploymentAuditReport } from '@/utils/deploymentAudit'
 import Navbar from '@/components/Navbar'
 import CreateUserForm from './CreateUserForm'
+import SupabaseRepairCard from './SupabaseRepairCard'
 
 export default async function AdminDashboard() {
-  const adminClient = createAdminClient()
   const supabase = await createClient()
+  await syncProfilesFromAuthUsers()
+  const audit = await getDeploymentAuditReport()
 
-  const { data: usersData } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 })
-  const allUsers = usersData?.users || []
-  const teachers = allUsers.filter(u => u.user_metadata?.role === 'teacher')
-  const students = allUsers.filter(u => u.user_metadata?.role === 'student')
+  const { data: profiles } = await supabase.from('profiles').select('id, role')
+  const teachers = (profiles || []).filter((profile) => profile.role === 'teacher')
+  const students = (profiles || []).filter((profile) => profile.role === 'student')
 
   const { data: modules } = await supabase.from('modules').select('id')
   const { data: enrollments } = await supabase.from('enrollments').select('id')
@@ -68,8 +70,52 @@ export default async function AdminDashboard() {
           ))}
         </div>
 
+        <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid #0f766e' }}>
+          <h3 style={{ marginBottom: '0.75rem' }}>Audit Deployment</h3>
+          <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+            Ringkasan cepat environment Vercel/local dan kesehatan project Supabase yang dipakai aplikasi ini.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <h4 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Environment Variables</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {audit.envItems.map((item) => (
+                  <div key={item.label} style={{ padding: '0.85rem', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.25rem' }}>
+                      <strong>{item.label}</strong>
+                      <span className={`chip ${item.level === 'ok' ? 'chip-success' : item.level === 'warn' ? 'chip-info' : 'chip-danger'}`}>
+                        {item.level.toUpperCase()}
+                      </span>
+                    </div>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>Supabase Health</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {audit.supabaseItems.map((item) => (
+                  <div key={item.label} style={{ padding: '0.85rem', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.25rem' }}>
+                      <strong>{item.label}</strong>
+                      <span className={`chip ${item.level === 'ok' ? 'chip-success' : item.level === 'warn' ? 'chip-info' : 'chip-danger'}`}>
+                        {item.level.toUpperCase()}
+                      </span>
+                    </div>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Form Buat User */}
         <CreateUserForm />
+        <SupabaseRepairCard />
       </div>
     </>
   )

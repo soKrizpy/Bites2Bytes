@@ -1,18 +1,18 @@
-import { createAdminClient } from '@/utils/supabase/admin'
 import { createClient } from '@/utils/supabase/server'
+import { syncProfilesFromAuthUsers } from '@/utils/supabase/admin'
 import LogoutButton from '@/components/LogoutButton'
 import { AddModuleForm, AddTopicForm } from './Forms'
 
 export default async function AdminModulesPage() {
-  const adminClient = createAdminClient()
   const supabase = await createClient()
+  await syncProfilesFromAuthUsers()
 
   // 1. Fetch Teachers for the dropdown
-  const { data: usersData } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 })
-  let teachers: any[] = []
-  if (usersData && usersData.users) {
-    teachers = usersData.users.filter((u: any) => u.user_metadata?.role === 'teacher')
-  }
+  const { data: teachers } = await supabase
+    .from('profiles')
+    .select('id, username')
+    .eq('role', 'teacher')
+    .order('username')
 
   // 2. Fetch existing modules
   // Use public client since RLS is disabled or standard queries work
@@ -33,7 +33,7 @@ export default async function AdminModulesPage() {
       </div>
 
       <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', marginBottom: '3rem' }}>
-        <AddModuleForm teachers={teachers} />
+        <AddModuleForm teachers={teachers || []} />
         <AddTopicForm modules={modules || []} />
       </div>
 
@@ -45,15 +45,15 @@ export default async function AdminModulesPage() {
            <p style={{ color: 'var(--color-text-muted)' }}>No modules created yet.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-            {modules.map((m: any) => {
-              const assignedTeacher = teachers.find(t => t.id === m.teacher_id)
+            {modules.map((m) => {
+              const assignedTeacher = teachers?.find((teacher) => teacher.id === m.teacher_id)
               return (
                 <div key={m.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', borderLeft: '4px solid var(--color-primary)' }}>
                   <div style={{ flex: 1 }}>
                     <h4 style={{ margin: 0, fontSize: '1.2rem' }}>{m.title}</h4>
                     <p style={{ color: 'var(--color-text-muted)', margin: '0.4rem 0', fontSize: '0.9rem' }}>{m.description || 'No description'}</p>
                     <p style={{ fontSize: '0.85rem', color: 'var(--color-accent)' }}>
-                      Teacher: {assignedTeacher ? assignedTeacher.user_metadata?.username : 'Unassigned'}
+                      Teacher: {assignedTeacher ? assignedTeacher.username : 'Unassigned'}
                     </p>
                   </div>
                   <a href={`/admin/modules/${m.id}`} className="btn btn-primary btn-sm">

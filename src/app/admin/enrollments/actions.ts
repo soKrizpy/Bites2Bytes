@@ -1,10 +1,34 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createAdminClient } from '@/utils/supabase/admin'
+import { createClient } from '@/utils/supabase/server'
 
-export async function createEnrollmentAction(prevState: any, formData: FormData) {
-  const adminClient = createAdminClient()
+interface EnrollmentActionState {
+  success: boolean
+  error: string
+  message: string
+}
+
+async function requireAdminUser() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user || user.user_metadata?.role !== 'admin') {
+    return { supabase, error: 'Hanya admin yang boleh mengubah data enrollment.' }
+  }
+
+  return { supabase, error: null }
+}
+
+export async function createEnrollmentAction(prevState: EnrollmentActionState, formData: FormData) {
+  void prevState
+
+  const { supabase, error: authError } = await requireAdminUser()
+  if (authError) {
+    return { success: false, error: authError, message: '' }
+  }
   
   const teacher_id = formData.get('teacher_id') as string
   const student_id = formData.get('student_id') as string
@@ -15,7 +39,7 @@ export async function createEnrollmentAction(prevState: any, formData: FormData)
     return { success: false, error: 'Harap lengkapi Guru, Siswa, dan Modul.', message: '' }
   }
 
-  const { data, error } = await adminClient.from('enrollments').insert({
+  const { error } = await supabase.from('enrollments').insert({
     teacher_id,
     student_id,
     module_id,
@@ -36,8 +60,12 @@ export async function createEnrollmentAction(prevState: any, formData: FormData)
 }
 
 export async function deleteEnrollmentAction(id: string) {
-  const adminClient = createAdminClient()
-  const { error } = await adminClient.from('enrollments').delete().eq('id', id)
+  const { supabase, error: authError } = await requireAdminUser()
+  if (authError) {
+    return { success: false, error: authError }
+  }
+
+  const { error } = await supabase.from('enrollments').delete().eq('id', id)
   if (error) {
     console.error('Error deleting enrollment:', error.message)
     return { success: false, error: error.message }

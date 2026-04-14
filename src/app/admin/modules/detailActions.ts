@@ -3,6 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 
+function revalidateModuleRoutes(moduleId?: string | null) {
+  revalidatePath('/admin/modules')
+  if (moduleId) {
+    revalidatePath(`/admin/modules/${moduleId}`)
+  }
+}
+
 // =============================
 // QUIZZES
 // =============================
@@ -10,6 +17,7 @@ import { createClient } from '@/utils/supabase/server'
 export async function createQuizAction(formData: FormData) {
   const supabase = await createClient()
   
+  const module_id = formData.get('module_id') as string | null
   const topic_id = formData.get('topic_id') as string
   const title = formData.get('title') as string
   const passing_score = parseInt(formData.get('passing_score') as string) || 70
@@ -25,15 +33,15 @@ export async function createQuizAction(formData: FormData) {
 
   if (error) return { success: false, error: error.message }
 
-  revalidatePath('/admin/modules/[moduleId]', 'page')
+  revalidateModuleRoutes(module_id)
   return { success: true, message: 'Quiz created successfully!' }
 }
 
-export async function deleteQuizAction(id: string) {
+export async function deleteQuizAction(id: string, moduleId?: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('quizzes').delete().eq('id', id)
   if (error) return { success: false, error: error.message }
-  revalidatePath('/admin/modules/[moduleId]', 'page')
+  revalidateModuleRoutes(moduleId)
   return { success: true }
 }
 
@@ -44,6 +52,7 @@ export async function deleteQuizAction(id: string) {
 export async function addQuizQuestionAction(formData: FormData) {
   const supabase = await createClient()
   
+  const module_id = formData.get('module_id') as string | null
   const quiz_id = formData.get('quiz_id') as string
   const question = formData.get('question') as string
   const option_a = formData.get('option_a') as string
@@ -63,15 +72,15 @@ export async function addQuizQuestionAction(formData: FormData) {
 
   if (error) return { success: false, error: error.message }
 
-  revalidatePath('/admin/modules/[moduleId]', 'page')
+  revalidateModuleRoutes(module_id)
   return { success: true, message: 'Question added!' }
 }
 
-export async function deleteQuizQuestionAction(id: string) {
+export async function deleteQuizQuestionAction(id: string, moduleId?: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('quiz_questions').delete().eq('id', id)
   if (error) return { success: false, error: error.message }
-  revalidatePath('/admin/modules/[moduleId]', 'page')
+  revalidateModuleRoutes(moduleId)
   return { success: true }
 }
 
@@ -82,7 +91,7 @@ export async function deleteQuizQuestionAction(id: string) {
 export async function createExamAction(formData: FormData) {
   const supabase = await createClient()
   
-  const module_id = formData.get('module_id') as string
+  const module_id = formData.get('module_id') as string | null
   const title = formData.get('title') as string
   const passing_score = parseInt(formData.get('passing_score') as string) || 75
 
@@ -96,7 +105,7 @@ export async function createExamAction(formData: FormData) {
 
   if (error) return { success: false, error: error.message }
 
-  revalidatePath('/admin/modules/[moduleId]', 'page')
+  revalidateModuleRoutes(module_id)
   return { success: true, message: 'Exam created successfully!' }
 }
 
@@ -107,6 +116,7 @@ export async function createExamAction(formData: FormData) {
 export async function addExamQuestionAction(formData: FormData) {
   const supabase = await createClient()
   
+  const module_id = formData.get('module_id') as string
   const exam_id = formData.get('exam_id') as string
   const question = formData.get('question') as string
   const option_a = formData.get('option_a') as string
@@ -126,14 +136,14 @@ export async function addExamQuestionAction(formData: FormData) {
 
   if (error) return { success: false, error: error.message }
 
-  revalidatePath('/admin/modules/[moduleId]', 'page')
+  revalidateModuleRoutes(module_id)
   return { success: true, message: 'Question added!' }
 }
 
-export async function deleteExamQuestionAction(id: string) {
+export async function deleteExamQuestionAction(id: string, moduleId?: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('exam_questions').delete().eq('id', id)
   if (error) return { success: false, error: error.message }
-  revalidatePath('/admin/modules/[moduleId]', 'page')
+  revalidateModuleRoutes(moduleId)
   return { success: true }
 }

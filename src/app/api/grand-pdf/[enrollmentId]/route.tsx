@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/utils/supabase/admin'
+import { createClient } from '@/utils/supabase/server'
 import React from 'react'
 import { renderToStream } from '@react-pdf/renderer'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
@@ -20,9 +20,29 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 10, color: '#94a3b8', borderTop: '1pt solid #e2e8f0', paddingTop: 10 }
 });
 
-const GrandPDFTemplate = ({ review, enrollment, sessions }: any) => {
-  const studentName = enrollment?.profiles?.full_name || enrollment?.profiles?.username || 'Siswa'
-  const moduleName = enrollment?.modules?.title || 'Modul'
+interface GrandReview {
+  final_review_pdf_url?: string | null
+  activity_suggestions?: string | null
+}
+
+interface GrandEnrollment {
+  modules?: { title?: string | null }[] | { title?: string | null } | null
+  profiles?: { full_name?: string | null; username?: string | null }[] | { full_name?: string | null; username?: string | null } | null
+}
+
+const GrandPDFTemplate = ({
+  review,
+  enrollment,
+  sessions,
+}: {
+  review: GrandReview | null
+  enrollment: GrandEnrollment | null
+  sessions: { id: string }[] | null
+}) => {
+  const profile = Array.isArray(enrollment?.profiles) ? enrollment?.profiles[0] : enrollment?.profiles
+  const moduleRecord = Array.isArray(enrollment?.modules) ? enrollment?.modules[0] : enrollment?.modules
+  const studentName = profile?.full_name || profile?.username || 'Siswa'
+  const moduleName = moduleRecord?.title || 'Modul'
   
   // Pisahkan suggestions dari tanda minus jika ada
   const suggestions = review?.activity_suggestions?.split('\n').map((s: string) => s.replace(/^- /, '').trim()).filter(Boolean) || []
@@ -71,21 +91,21 @@ const GrandPDFTemplate = ({ review, enrollment, sessions }: any) => {
 
 export async function GET(req: NextRequest, props: { params: Promise<{ enrollmentId: string }> }) {
   const { enrollmentId } = await props.params
-  const adminClient = createAdminClient()
+  const supabase = await createClient()
 
-  const { data: review } = await adminClient.from('module_reviews').select('*').eq('enrollment_id', enrollmentId).single()
+  const { data: review } = await supabase.from('module_reviews').select('*').eq('enrollment_id', enrollmentId).single()
   if (!review) return new NextResponse('Review belum di-generate.', { status: 404 })
 
-  const { data: enrollment } = await adminClient.from('enrollments')
+  const { data: enrollment } = await supabase.from('enrollments')
       .select('modules(title), profiles!enrollments_student_id_fkey(full_name, username)')
       .eq('id', enrollmentId)
       .single()
 
-  const { data: sessions } = await adminClient.from('class_sessions').select('id').eq('enrollment_id', enrollmentId).eq('report_submitted', true)
+  const { data: sessions } = await supabase.from('class_sessions').select('id').eq('enrollment_id', enrollmentId).eq('report_submitted', true)
 
   const stream = await renderToStream(<GrandPDFTemplate review={review} enrollment={enrollment} sessions={sessions} />)
 
-  return new NextResponse(stream as any, {
+  return new NextResponse(stream as unknown as BodyInit, {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Progress_${(enrollment?.modules as any)?.title || 'Report'}.pdf"`,

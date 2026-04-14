@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "repair:supabase": "node scripts/repair_supabase.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.49.0",

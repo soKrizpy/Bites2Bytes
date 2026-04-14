@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/utils/supabase/admin'
+import { createClient } from '@/utils/supabase/server'
 import React from 'react'
 import { renderToStream } from '@react-pdf/renderer'
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
@@ -21,7 +21,15 @@ const styles = StyleSheet.create({
   qrText: { fontSize: 8, color: '#94a3b8' }
 });
 
-const CertificateTemplate = ({ cert, studentName, moduleTitle }: any) => {
+interface CertificateRecord {
+  exam_score: number
+  issued_at: string
+  certificate_number: string
+  modules?: { title?: string | null }[] | { title?: string | null } | null
+  profiles?: { full_name?: string | null; username?: string | null }[] | { full_name?: string | null; username?: string | null } | null
+}
+
+const CertificateTemplate = ({ cert, studentName, moduleTitle }: { cert: CertificateRecord; studentName: string; moduleTitle: string }) => {
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
@@ -56,10 +64,10 @@ const CertificateTemplate = ({ cert, studentName, moduleTitle }: any) => {
 
 export async function GET(req: NextRequest, props: { params: Promise<{ certificateId: string }> }) {
   const { certificateId } = await props.params
-  const adminClient = createAdminClient()
+  const supabase = await createClient()
 
   // Ambil data sertifikat dan join profile siswa + modul
-  const { data: cert } = await adminClient
+  const { data: cert } = await supabase
     .from('certificates')
     .select(`
       *,
@@ -71,14 +79,16 @@ export async function GET(req: NextRequest, props: { params: Promise<{ certifica
 
   if (!cert) return new NextResponse('Sertifikat tidak ditemukan.', { status: 404 })
 
-  const studentName = cert.profiles?.full_name || cert.profiles?.username || 'Student'
-  const moduleTitle = cert.modules?.title || 'Unknown Module'
+  const profile = Array.isArray(cert.profiles) ? cert.profiles[0] : cert.profiles
+  const moduleRecord = Array.isArray(cert.modules) ? cert.modules[0] : cert.modules
+  const studentName = profile?.full_name || profile?.username || 'Student'
+  const moduleTitle = moduleRecord?.title || 'Unknown Module'
 
   const stream = await renderToStream(
      <CertificateTemplate cert={cert} studentName={studentName} moduleTitle={moduleTitle} />
   )
 
-  return new NextResponse(stream as any, {
+  return new NextResponse(stream as unknown as BodyInit, {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Certificate_${studentName}.pdf"`,
