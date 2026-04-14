@@ -12,19 +12,35 @@ interface SubmitQuizPayload {
   badgeId: string | null
 }
 
-export async function submitQuizAction(payload: SubmitQuizPayload) {
+export async function submitQuizAction(payload: {
+  studentId: string
+  topicId: string
+  score: number
+}) {
   const supabase = await createClient()
 
+  // 1. Fetch topic requirements
+  const { data: topic } = await supabase
+    .from('topics')
+    .select('passing_score, badge_id')
+    .eq('id', payload.topicId)
+    .single()
+
+  const passingScore = topic?.passing_score ?? 80
+  const badgeId = topic?.badge_id
+  const passed = payload.score >= passingScore
+
+  // 2. Upsert record
   const { error } = await supabase
     .from('student_progress')
     .upsert({
       student_id: payload.studentId,
       topic_id: payload.topicId,
-      completed: payload.passed,
+      completed: passed,
       quiz_score: payload.score,
-      badge_earned: payload.passed && !!payload.badgeId,
-      badge_id: payload.passed ? payload.badgeId : null,
-      completed_at: payload.passed ? new Date().toISOString() : null,
+      badge_earned: passed && !!badgeId,
+      badge_id: passed ? badgeId : null,
+      completed_at: passed ? new Date().toISOString() : null,
     }, { onConflict: 'student_id,topic_id' })
 
   if (error) {
@@ -34,5 +50,5 @@ export async function submitQuizAction(payload: SubmitQuizPayload) {
 
   revalidatePath('/student')
   revalidatePath(`/student/topics/${payload.topicId}`)
-  return { success: true }
+  return { success: true, passed, score: payload.score, required: passingScore }
 }

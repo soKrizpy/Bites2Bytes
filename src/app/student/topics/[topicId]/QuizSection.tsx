@@ -63,16 +63,20 @@ export default function QuizSection({ quiz, questions, topicId, studentId, exist
     const passed = score >= quiz.passing_score
 
     startTransition(async () => {
-      await submitQuizAction({
+      const res = await submitQuizAction({
         studentId,
         topicId,
-        quizId: quiz.id,
         score,
-        passed,
-        badgeId: passed && quiz.badge_id ? quiz.badge_id : null,
       })
-      setResult({ score, passed, badgeEarned: passed && !!quiz.badge_id })
-      setShowQuiz(false)
+      
+      if (res.success) {
+        setResult({ 
+          score, 
+          passed: res.passed || false, 
+          badgeEarned: res.passed && !!quiz.badge_id 
+        })
+        setShowQuiz(false)
+      }
     })
   }
 

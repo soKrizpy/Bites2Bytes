@@ -59,19 +59,13 @@ export default function ExamSection({ exam, questions, moduleId, studentId }: Ex
       const res = await submitExamAction({
         studentId,
         moduleId,
-        examId: exam.id,
         score,
-        passed,
       })
 
       if (res.success) {
-        setResult({ score, passed })
-        if (passed) {
-             // Redirect atau refresh akan ditangani oleh revalidatePath di action
-             // Namun untuk UX kita tunjukkan result dulu
-        }
+        setResult({ score, passed: res.passed || false })
       } else {
-        setResult({ score, passed, error: res.error })
+        setResult({ score, passed: false, error: res.error })
       }
     })
   }

@@ -7,6 +7,7 @@ export interface ProfileSyncRow {
   username: string
   full_name: string
   role: AppRole
+  plain_mpin?: string
 }
 
 export function hasAdminCredentials() {
@@ -84,6 +85,7 @@ export async function syncProfilesFromAuthUsers() {
         username,
         full_name: username,
         role,
+        plain_mpin: typeof user.user_metadata?.mpin === 'string' ? user.user_metadata.mpin : undefined
       }
     })
     .filter((row): row is ProfileSyncRow => Boolean(row))

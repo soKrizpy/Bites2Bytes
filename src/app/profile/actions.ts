@@ -17,8 +17,9 @@ async function ensureOwnProfile(userId: string, username: string, role: string) 
       username,
       full_name: username,
       role,
+      avatar_url: null,
     },
-    { onConflict: 'id' }
+    { onConflict: 'id', ignoreDuplicates: true }
   )
 }
 
@@ -92,11 +93,11 @@ export async function updatePhotoAction(formData: FormData) {
     .getPublicUrl(filePath)
 
   // Tambah cache buster agar gambar reload
-  const photoUrl = `${urlData.publicUrl}?t=${Date.now()}`
+  const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`
 
   const { error: updateError } = await supabase
     .from('profiles')
-    .update({ photo_url: photoUrl })
+    .update({ avatar_url: avatarUrl })
     .eq('id', user.id)
 
   if (updateError) return { success: false, error: updateError.message }

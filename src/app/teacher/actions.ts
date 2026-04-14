@@ -170,7 +170,7 @@ SARAN AKTIVITAS:
        .from('module_reviews')
        .upsert({
          enrollment_id: enrollmentId,
-         final_review_pdf_url: finalReview, // Kita pinjam kolom ini sementara untuk menyimpan teks review (karena schema V4 menggunakan ini)
+         final_review_text: finalReview,
          activity_suggestions: suggestions
        }, { onConflict: 'enrollment_id' })
 

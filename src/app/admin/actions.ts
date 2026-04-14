@@ -35,19 +35,22 @@ export async function createUserAction(prevState: ActionState | null, formData: 
 
   const adminClient = createAdminClient()
   
-  const rawUsername = formData.get('username') as string
+  const countryCode = formData.get('country_code') as string
+  const rawNumber = formData.get('username') as string
   const role = formData.get('role') as string
   const mpin = formData.get('mpin') as string
 
-  if (!rawUsername || !role || !mpin) {
+  if (!rawNumber || !role || !mpin) {
     return { success: false, error: 'All fields are required.' }
   }
 
-  // Define synthetic email domain
-  const internalDomain = '@bites2bytes.internal'
+  // Format WhatsApp number as username (e.g. +628123456789)
+  // Remove leading zero if necessary (standard practice for international format)
+  const cleanNumber = rawNumber.replace(/^0+/, '')
+  const username = `${countryCode}${cleanNumber}`
   
-  // Format username to be safe and consistent (lowercase, trimmed)
-  const username = rawUsername.trim().toLowerCase()
+  // Define synthetic email domain for Supabase Auth
+  const internalDomain = '@bites2bytes.internal'
   const syntheticEmail = `${username}${internalDomain}`
 
   // Create user using Supabase Admin API
@@ -73,16 +76,20 @@ export async function createUserAction(prevState: ActionState | null, formData: 
       username: username,
       full_name: username,
       role: role,
-      plain_mpin: mpin
+      plain_mpin: mpin,
+      avatar_url: null // Initialize with null
     })
     
     if (profileError) {
-      console.error('Error saving plain_mpin to profile:', profileError.message)
+      console.error('Error saving profile record:', profileError.message)
+      return { success: false, error: `Auth user created but profile insertion failed: ${profileError.message}` }
     }
   }
 
   revalidatePath('/admin')
-  return { success: true, message: `Successfully created user ${username}!` }
+  revalidatePath('/admin/students')
+  revalidatePath('/admin/teachers')
+  return { success: true, message: `Successfully created ${role}: ${username}!` }
 }
 
 export async function repairSupabaseAction(): Promise<RepairActionResult> {
@@ -93,10 +100,11 @@ export async function repairSupabaseAction(): Promise<RepairActionResult> {
     }
   }
 
-  const [profileSync, profilePicturesBucket, badgesBucket] = await Promise.all([
+  const [profileSync, profilePicturesBucket, badgesBucket, thumbnailsBucket] = await Promise.all([
     syncProfilesFromAuthUsers(),
     ensureStorageBucket('profile-pictures'),
     ensureStorageBucket('badges'),
+    ensureStorageBucket('thumbnails'),
   ])
 
   if (!profileSync.success) {
@@ -107,11 +115,16 @@ export async function repairSupabaseAction(): Promise<RepairActionResult> {
     }
   }
 
-  const bucketErrors = [profilePicturesBucket.error, badgesBucket.error].filter(Boolean)
+  const bucketErrors = [
+    profilePicturesBucket.error, 
+    badgesBucket.error, 
+    thumbnailsBucket.error
+  ].filter(Boolean)
+
   if (bucketErrors.length > 0) {
     return {
       success: false,
-      error: bucketErrors.join(' | '),
+      error: `Storage Setup Error: ${bucketErrors.join(' | ')}`,
       syncedCount: profileSync.syncedCount,
     }
   }

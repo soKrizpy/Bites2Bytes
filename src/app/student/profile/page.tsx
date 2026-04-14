@@ -12,20 +12,21 @@ export default async function StudentProfilePage() {
     username: user.user_metadata?.username || '',
     role: 'student',
     full_name: user.user_metadata?.username || '',
+    avatar_url: null
   }, { onConflict: 'id', ignoreDuplicates: true })
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
 
   return (
     <>
-      <Navbar role="student" username={profile?.username} photoUrl={profile?.photo_url} />
+      <Navbar role="student" username={profile?.username} photoUrl={profile?.avatar_url || profile?.photo_url || undefined} />
       <div className="page-wrapper">
         <a href="/student" style={{ color: 'var(--color-primary)', fontSize: '0.9rem', display: 'inline-block', marginBottom: '1rem' }}>
           ← Kembali ke Dashboard
         </a>
         <h1 className="header">👤 Profil Saya</h1>
         <p className="page-subtitle">Perbarui biodata dan foto profilmu.</p>
-        <ProfileForm profile={profile || { id: user.id, username: user.user_metadata?.username || '', full_name: null, bio: null, photo_url: null, role: 'student' }} />
+        <ProfileForm profile={profile || { id: user.id, username: user.user_metadata?.username || '', full_name: null, bio: null, avatar_url: null, role: 'student' }} />
       </div>
     </>
   )

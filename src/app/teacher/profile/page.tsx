@@ -13,6 +13,7 @@ export default async function TeacherProfilePage() {
     username: user.user_metadata?.username || '',
     role: 'teacher',
     full_name: user.user_metadata?.username || '',
+    avatar_url: null
   }, { onConflict: 'id', ignoreDuplicates: true })
 
   const { data: profile } = await supabase
@@ -23,14 +24,14 @@ export default async function TeacherProfilePage() {
 
   return (
     <>
-      <Navbar role="teacher" username={profile?.username} photoUrl={profile?.photo_url} />
+      <Navbar role="teacher" username={profile?.username} photoUrl={profile?.avatar_url || profile?.photo_url || undefined} />
       <div className="page-wrapper">
         <a href="/teacher" style={{ color: 'var(--color-primary)', fontSize: '0.9rem', display: 'inline-block', marginBottom: '1rem' }}>
           ← Kembali ke Dashboard
         </a>
         <h1 className="header">👤 Profil Saya</h1>
         <p className="page-subtitle">Perbarui biodata dan foto profilmu.</p>
-        <ProfileForm profile={profile || { id: user.id, username: user.user_metadata?.username || '', full_name: null, bio: null, photo_url: null, role: 'teacher' }} />
+        <ProfileForm profile={profile || { id: user.id, username: user.user_metadata?.username || '', full_name: null, bio: null, avatar_url: null, role: 'teacher' }} />
       </div>
     </>
   )

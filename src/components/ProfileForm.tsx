@@ -9,7 +9,8 @@ interface ProfileFormProps {
     username: string
     full_name: string | null
     bio: string | null
-    photo_url: string | null
+    photo_url?: string | null // Keep for internal usage if needed but use avatar_url
+    avatar_url: string | null
     role: string
   }
 }
@@ -18,7 +19,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
   const [isPending, startTransition] = useTransition()
   const [isUploadPending, startUploadTransition] = useTransition()
   const [state, setState] = useState({ success: false, error: '', message: '' })
-  const [photoPreview, setPhotoPreview] = useState<string | null>(profile.photo_url)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(profile.avatar_url || profile.photo_url || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = (formData: FormData) => {
