@@ -14,6 +14,8 @@ export async function createModuleAction(formData: FormData) {
   const description = formData.get('description') as string
   const passing_score = parseInt(formData.get('passing_score') as string) || 80
   const thumbnail = formData.get('thumbnail') as File
+  const drive_link = formData.get('drive_link') as string
+  const canva_link = formData.get('canva_link') as string
 
   if (!title) {
     return { success: false, error: 'Title is required.' }
@@ -49,6 +51,8 @@ export async function createModuleAction(formData: FormData) {
       description,
       thumbnail_url,
       passing_score,
+      drive_link,
+      canva_link,
       created_by: user.id
     })
 

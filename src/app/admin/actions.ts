@@ -139,6 +139,7 @@ export async function repairSupabaseAction(): Promise<RepairActionResult> {
   revalidatePath('/admin/teachers')
   revalidatePath('/teacher')
   revalidatePath('/student')
+  revalidatePath('/admin/teachers')
 
   return {
     success: true,
@@ -149,4 +150,42 @@ export async function repairSupabaseAction(): Promise<RepairActionResult> {
         ? `Repair selesai. ${profileSync.syncedCount || 0} profile berhasil disinkronkan dan bucket storage siap.`
         : `Repair selesai, tetapi masih ada ${remainingWarnings.length} item yang perlu dicek di panel Audit Deployment.`,
   }
+}
+
+export async function assignModuleToTeacherAction(teacherId: string, moduleId: string) {
+  const adminClient = createAdminClient()
+  
+  const { error } = await adminClient
+    .from('teacher_modules')
+    .insert({ teacher_id: teacherId, module_id: moduleId })
+
+  if (error) {
+    console.error('Error assigning module to teacher:', error.message)
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath('/admin/teachers')
+  revalidatePath('/admin/enrollments')
+  revalidatePath('/teacher')
+  return { success: true, message: 'Module assigned successfully!' }
+}
+
+export async function unassignModuleFromTeacherAction(teacherId: string, moduleId: string) {
+  const adminClient = createAdminClient()
+  
+  const { error } = await adminClient
+    .from('teacher_modules')
+    .delete()
+    .eq('teacher_id', teacherId)
+    .eq('module_id', moduleId)
+
+  if (error) {
+    console.error('Error unassigning module from teacher:', error.message)
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath('/admin/teachers')
+  revalidatePath('/admin/enrollments')
+  revalidatePath('/teacher')
+  return { success: true, message: 'Module unassigned successfully!' }
 }

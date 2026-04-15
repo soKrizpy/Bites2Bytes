@@ -38,6 +38,14 @@ export function AddModuleForm() {
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Min. Score for Exam (%)</label>
           <input type="number" name="passing_score" defaultValue="80" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #ccc' }} />
         </div>
+        <div>
+          <label className="form-label">Link Google Drive (View Mode)</label>
+          <input type="url" name="drive_link" placeholder="https://drive.google.com/..." className="form-control" />
+        </div>
+        <div>
+          <label className="form-label">Link Canva (View Mode)</label>
+          <input type="url" name="canva_link" placeholder="https://www.canva.com/..." className="form-control" />
+        </div>
         <button type="submit" disabled={isPending} className="btn btn-primary">
           {isPending ? 'Creating...' : 'Create Module'}
         </button>

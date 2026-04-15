@@ -24,7 +24,10 @@ export default async function AdminEnrollmentsPage() {
   // 2. Ambil data modul
   const { data: modules } = await supabase.from('modules').select('id, title').order('created_at', { ascending: false })
 
-  // 3. Ambil data enrollments 
+  // 3. Ambil data teacher assignments (untuk filter di form)
+  const { data: teacherModules } = await supabase.from('teacher_modules').select('teacher_id, module_id')
+
+  // 4. Ambil data enrollments 
   const { data: enrollments } = await supabase.from('enrollments').select(`
     id, teacher_id, student_id, zoom_link, enrolled_at,
     modules(id, title)
@@ -86,7 +89,7 @@ export default async function AdminEnrollmentsPage() {
 
           {/* Kolom Kanan: Form Buat Enrollment */}
           <div style={{ flex: '1', minWidth: '300px' }}>
-             <EnrollmentForm teachers={teachers} students={students} modules={modules || []} />
+             <EnrollmentForm teachers={teachers} students={students} modules={modules || []} teacherModules={teacherModules || []} />
           </div>
 
         </div>

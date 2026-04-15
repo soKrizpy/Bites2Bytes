@@ -72,8 +72,8 @@ export default function QuizSection({ quiz, questions, topicId, studentId, exist
       if (res.success) {
         setResult({ 
           score, 
-          passed: res.passed || false, 
-          badgeEarned: res.passed && !!quiz.badge_id 
+          passed: !!res.passed, 
+          badgeEarned: !!(res.passed && quiz.badge_id)
         })
         setShowQuiz(false)
       }

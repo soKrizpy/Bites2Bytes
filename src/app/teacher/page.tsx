@@ -27,7 +27,7 @@ export default async function TeacherDashboard() {
 
   const displayProfile = profile || { username: user.user_metadata?.username || '', full_name: '', bio: '', photo_url: null }
 
-  // Ambil semua enrollment milik guru ini
+  // 1. Ambil semua enrollment milik guru ini (untuk daftar siswa)
   const { data: enrollments } = await supabase
     .from('enrollments')
     .select(`
@@ -39,6 +39,17 @@ export default async function TeacherDashboard() {
     `)
     .eq('teacher_id', user.id)
     .order('enrolled_at', { ascending: false })
+
+  // 2. Ambil modul yang ditugaskan kepada guru ini (Qualification/Specialization)
+  const { data: assignedModulesData } = await supabase
+    .from('teacher_modules')
+    .select(`
+      module_id,
+      modules (id, title, description, drive_link, canva_link, thumbnail_url)
+    `)
+    .eq('teacher_id', user.id)
+
+  const assignedModules = (assignedModulesData || []).map(am => am.modules as any).filter(Boolean)
 
   // Hitung statistik
   const uniqueStudents = new Set(enrollments?.map(e => e.student_id) || [])
@@ -103,6 +114,40 @@ export default async function TeacherDashboard() {
             <span className="stat-label">Topik Selesai</span>
           </div>
         </div>
+
+        {/* BAGIAN BARU: Modul yang Ditugaskan (Resource Links) */}
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>📖 Modul & Materi Saya</h2>
+        {assignedModules.length === 0 ? (
+          <div className="card" style={{ marginBottom: '2.5rem', padding: '1.5rem', color: 'var(--color-text-muted)' }}>
+            <p>Anda belum ditugaskan ke modul spesifik apapun oleh Admin.</p>
+          </div>
+        ) : (
+          <div className="grid-auto" style={{ gap: '1rem', marginBottom: '2.5rem' }}>
+            {assignedModules.map(m => (
+              <div key={m.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '4px solid var(--color-primary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  {m.thumbnail_url && <img src={m.thumbnail_url} style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }} />}
+                  <h4 style={{ margin: 0 }}>{m.title}</h4>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {m.drive_link && (
+                    <a href={m.drive_link} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ backgroundColor: '#4285F4', color: 'white', flex: 1, textAlign: 'center' }}>
+                      📁 Drive
+                    </a>
+                  )}
+                  {m.canva_link && (
+                    <a href={m.canva_link} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ backgroundColor: '#00C4CC', color: 'white', flex: 1, textAlign: 'center' }}>
+                      🎨 Canva
+                    </a>
+                  )}
+                  {!m.drive_link && !m.canva_link && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Material belum tersedia.</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Daftar Siswa & Modul per Enrollment */}
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>👥 Siswa & Kelas Saya</h2>

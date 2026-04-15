@@ -250,6 +250,24 @@ ALTER TABLE class_sessions DISABLE ROW LEVEL SECURITY;
 ALTER TABLE module_reviews DISABLE ROW LEVEL SECURITY;
 ALTER TABLE payroll_slips DISABLE ROW LEVEL SECURITY;
 
+-- =============================
+-- 15. TEACHER MODULES (Specialization / Authorization)
+-- =============================
+CREATE TABLE IF NOT EXISTS teacher_modules (
+  teacher_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  module_id UUID REFERENCES modules(id) ON DELETE CASCADE NOT NULL,
+  assigned_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (teacher_id, module_id)
+);
+
+-- Add resource links to modules if they don't exist
+ALTER TABLE modules
+  ADD COLUMN IF NOT EXISTS drive_link TEXT,
+  ADD COLUMN IF NOT EXISTS canva_link TEXT;
+
+-- Disable RLS for the new table
+ALTER TABLE teacher_modules DISABLE ROW LEVEL SECURITY;
+
 -- ============================================================
 -- DONE! Semua tabel berhasil dibuat.
 -- ============================================================
