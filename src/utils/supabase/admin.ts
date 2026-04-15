@@ -68,7 +68,7 @@ export async function syncProfilesFromAuthUsers() {
     }
   }
 
-  const rows: ProfileSyncRow[] = (data?.users || [])
+  const rows = (data?.users || [])
     .map((user) => {
       const role = normalizeRole(user.user_metadata?.role)
       const username =
@@ -80,15 +80,16 @@ export async function syncProfilesFromAuthUsers() {
         return null
       }
 
-      return {
+      const row: ProfileSyncRow = {
         id: user.id,
         username,
         full_name: username,
         role,
         plain_mpin: typeof user.user_metadata?.mpin === 'string' ? user.user_metadata.mpin : undefined
       }
+      return row
     })
-    .filter((row): row is ProfileSyncRow => Boolean(row))
+    .filter((row): row is ProfileSyncRow => row !== null)
 
   if (rows.length === 0) {
     return {
