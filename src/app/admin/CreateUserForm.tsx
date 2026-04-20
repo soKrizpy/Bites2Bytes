@@ -34,7 +34,7 @@ export default function CreateUserForm() {
     <div className="card" style={{ marginTop: '2rem', borderTop: '4px solid var(--color-primary)' }}>
       <h3>Create New User</h3>
       <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-        Provision a new Student or Teacher account using their WhatsApp number and MPIN.
+        Provision a new Student or Teacher account using their WhatsApp number, Full Name, and MPIN.
       </p>
       
       {state.error && (
@@ -50,6 +50,18 @@ export default function CreateUserForm() {
       )}
 
       <form action={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div>
+          <label htmlFor="full_name" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Full Name</label>
+          <input 
+            type="text" 
+            id="full_name" 
+            name="full_name" 
+            required 
+            placeholder="e.g. John Doe"
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #ccc', fontSize: '1rem' }}
+          />
+        </div>
+
         <div>
           <label htmlFor="wa_number" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>WhatsApp Number</label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -106,7 +118,7 @@ export default function CreateUserForm() {
               }}
               title={showMpin ? 'Hide MPIN' : 'Show MPIN'}
             >
-              {showMpin ? (showMpin ? '🙈' : '👁️') : '👁️'}
+              {showMpin ? '🙈' : '👁️'}
             </button>
            </div>
         </div>

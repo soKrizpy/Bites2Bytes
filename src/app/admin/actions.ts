@@ -39,8 +39,9 @@ export async function createUserAction(prevState: ActionState | null, formData: 
   const rawNumber = formData.get('username') as string
   const role = formData.get('role') as string
   const mpin = formData.get('mpin') as string
+  const fullName = (formData.get('full_name') as string) || rawNumber
 
-  if (!rawNumber || !role || !mpin) {
+  if (!rawNumber || !role || !mpin || !fullName) {
     return { success: false, error: 'All fields are required.' }
   }
 
@@ -60,6 +61,7 @@ export async function createUserAction(prevState: ActionState | null, formData: 
     email_confirm: true,
     user_metadata: {
       username: username,
+      full_name: fullName,
       role: role
     }
   })
@@ -74,7 +76,7 @@ export async function createUserAction(prevState: ActionState | null, formData: 
     const { error: profileError } = await adminClient.from('profiles').upsert({
       id: authData.user.id,
       username: username,
-      full_name: username,
+      full_name: fullName,
       role: role,
       plain_mpin: mpin,
       avatar_url: null // Initialize with null

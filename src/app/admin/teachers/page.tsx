@@ -11,7 +11,7 @@ export default async function AdminTeachersPage() {
   // 1. Ambil data guru
   const { data: teachers, error } = await supabase
     .from('profiles')
-    .select('id, username, plain_mpin, created_at')
+    .select('id, username, full_name, plain_mpin, created_at')
     .eq('role', 'teacher')
     .order('created_at', { ascending: false })
 
@@ -57,16 +57,21 @@ export default async function AdminTeachersPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '0.75rem' }}>Username</th>
+                  <th style={{ padding: '0.75rem' }}>Full Name</th>
+                  <th style={{ padding: '0.75rem' }}>WhatsApp / ID</th>
                   <th style={{ padding: '0.75rem' }}>MPIN</th>
                   <th style={{ padding: '0.75rem', width: '300px' }}>Assigned Modules</th>
-                  <th style={{ padding: '0.75rem' }}>ID & Join Date</th>
+                  <th style={{ padding: '0.75rem' }}>Join Date</th>
                 </tr>
               </thead>
               <tbody>
                 {teachersWithModules.map((tc) => (
                   <tr key={tc.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{tc.username}</td>
+                    <td style={{ padding: '0.75rem', fontWeight: 'bold' }}>{tc.full_name || '-'}</td>
+                    <td style={{ padding: '0.75rem', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                      <div style={{ color: 'var(--color-text)' }}>{tc.username}</div>
+                      <div style={{ fontSize: '0.8rem' }}>{tc.id.substring(0, 8)}...</div>
+                    </td>
                     <td style={{ padding: '0.75rem' }}>
                       <MpinVisibilityCell value={tc.plain_mpin} />
                     </td>
@@ -78,8 +83,7 @@ export default async function AdminTeachersPage() {
                       />
                     </td>
                     <td style={{ padding: '0.75rem', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                      <div style={{ fontWeight: 600 }}>ID: {tc.id.substring(0, 8)}...</div>
-                      <div>Join: {new Date(tc.created_at).toLocaleDateString()}</div>
+                      {new Date(tc.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}
