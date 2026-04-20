@@ -70,11 +70,18 @@ export async function createTopicAction(formData: FormData) {
   
   const module_id = formData.get('module_id') as string
   const title = formData.get('title') as string
-  const description = formData.get('description') as string
+  const description = formData.get('description') as string || null
   const passing_score = parseInt(formData.get('passing_score') as string) || 80
-  const badge_id = formData.get('badge_id') as string || null
-  const drive_link = formData.get('drive_link') as string
-  const canva_link = formData.get('canva_link') as string
+  
+  let badge_id = formData.get('badge_id') as string | null
+  if (badge_id === "") badge_id = null;
+
+  let drive_link = formData.get('drive_link') as string | null
+  if (drive_link === "") drive_link = null;
+
+  let canva_link = formData.get('canva_link') as string | null
+  if (canva_link === "") canva_link = null;
+
   const sort_order = parseInt(formData.get('sort_order') as string) || 0
 
   if (!title || !module_id) {
@@ -100,5 +107,6 @@ export async function createTopicAction(formData: FormData) {
   }
 
   revalidatePath('/admin/modules')
+  revalidatePath(`/admin/modules/${module_id}`)
   return { success: true, message: `Topic "${title}" added successfully!` }
 }

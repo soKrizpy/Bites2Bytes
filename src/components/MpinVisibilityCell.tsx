@@ -8,26 +8,34 @@ interface MpinVisibilityCellProps {
 
 export default function MpinVisibilityCell({ value }: MpinVisibilityCellProps) {
   const [isVisible, setIsVisible] = useState(false)
-  const mpin = value || 'Hidden'
+  
+  // Jika value null (data lawas), kita berikan teks fallback
+  const fallbackText = "Not Recorded"
+  const mpin = value || fallbackText
   const displayValue = isVisible ? mpin : '••••••••'
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      <span style={{ fontFamily: 'monospace', color: 'var(--color-danger)', fontWeight: 'bold', minWidth: '88px' }}>
-        {value ? displayValue : 'Hidden'}
+      <span style={{ 
+        fontFamily: 'monospace', 
+        color: !value && isVisible ? 'var(--color-text-muted)' : 'var(--color-danger)', 
+        fontWeight: 'bold', 
+        minWidth: '88px' 
+      }}>
+        {displayValue}
       </span>
-      {value && (
-        <button
-          type="button"
-          onClick={() => setIsVisible((current) => !current)}
-          className="btn btn-ghost btn-sm"
-          aria-label={isVisible ? 'Sembunyikan MPIN' : 'Tampilkan MPIN'}
-          title={isVisible ? 'Sembunyikan MPIN' : 'Tampilkan MPIN'}
-          style={{ padding: '0.35rem 0.6rem', minWidth: '44px' }}
-        >
-          {isVisible ? '🙈' : '👁'}
-        </button>
-      )}
+      
+      <button
+        type="button"
+        onClick={() => setIsVisible((current) => !current)}
+        className="btn btn-ghost btn-sm"
+        aria-label={isVisible ? 'Sembunyikan MPIN' : 'Tampilkan MPIN'}
+        title={isVisible ? 'Sembunyikan MPIN' : 'Tampilkan MPIN'}
+        style={{ padding: '0.35rem 0.6rem', minWidth: '44px' }}
+      >
+        {isVisible ? '🙈' : '👁️'}
+      </button>
     </div>
   )
 }
+
