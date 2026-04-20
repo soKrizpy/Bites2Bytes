@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, use } from 'react'
 import { login } from './actions'
 
 const countryCodes = [
@@ -14,9 +14,10 @@ const countryCodes = [
   { code: '+44', label: '🇬🇧 UK (+44)' },
 ]
 
-export default function LoginPage(props: { searchParams?: any }) {
+export default function LoginPage(props: { searchParams?: Promise<any> }) {
   const [identifierType, setIdentifierType] = useState<'wa' | 'email'>('wa')
-  const portal = props.searchParams?.portal || '';
+  const searchParams = props.searchParams ? use(props.searchParams) : {};
+  const portal = searchParams?.portal || '';
   const displayPortal = portal ? `${portal.charAt(0).toUpperCase()}${portal.slice(1)} Portal ` : '';
 
   return (
@@ -25,6 +26,12 @@ export default function LoginPage(props: { searchParams?: any }) {
         <h1 className="header" style={{ fontSize: '2rem', marginBottom: '1.5rem' }}>
           Login to {displayPortal}
         </h1>
+
+        {searchParams?.error && (
+          <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '6px', marginBottom: '1.5rem' }}>
+            {searchParams.error}
+          </div>
+        )}
         
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
           <button 
